@@ -5,8 +5,6 @@ import { Device } from './entities/device.entity';
 import { GpsLog } from './entities/gps-log.entity';
 import { DevicesModule } from './modules/devices/devices.module';
 import { GpsModule } from './modules/gps/gps.module';
-import { StreamingModule } from './modules/streaming/streaming.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -30,7 +28,6 @@ import { StreamingModule } from './modules/streaming/streaming.module';
     }),
     DevicesModule,
     GpsModule,
-    StreamingModule,
   ],
 })
 export class AppModule {}

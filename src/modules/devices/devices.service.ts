@@ -39,7 +39,7 @@ export class DevicesService {
 
     async remove(id: string): Promise<void> {
         const device = await this.findOne(id);
-        await this.deviceRepo.save(device);
+        await this.deviceRepo.remove(device);
     }
 
     async updateLastOnline(id: string): Promise<void> {

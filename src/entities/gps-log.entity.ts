@@ -7,7 +7,6 @@ import { Device } from './device.entity';
 export class GpsLog {
     
   @ManyToOne(() => Device, { onDelete: 'CASCADE', eager: false})
-
   @JoinColumn({ name: 'deviceId'})
   device: Device;
 
