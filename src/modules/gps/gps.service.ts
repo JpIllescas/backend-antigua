@@ -105,13 +105,15 @@ export class GpsService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Guardar en gps_logs
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guatemala'})); 
+
     const log = this.gpsLogRepo.create({
       deviceId: payload.id,
       latitude: payload.lat,
       longitude: payload.lon,
       speed: payload.vel ?? 0,
       is_buffered: payload.buf ?? false,
-      timestamp: new Date(),
+      timestamp: now,
     });
 
     await this.gpsLogRepo.save(log);
@@ -128,7 +130,7 @@ export class GpsService implements OnModuleInit, OnModuleDestroy {
       lon: payload.lon,
       speed: payload.vel ?? 0,
       is_buffered: payload.buf ?? false,
-      timestamp: new Date().toISOString(),
+      timestamp: now.toISOString(),
     });
   }
 
