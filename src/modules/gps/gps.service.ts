@@ -43,12 +43,19 @@ export class GpsService implements OnModuleInit, OnModuleDestroy {
     const brokerUrl = this.configService.get<string>('MQTT_BROKER_URL', '');
     const topic = this.configService.get<string>('MQTT_TOPIC', '');
 
+    if (!brokerUrl) {
+      this.logger.warn('MQTT_BROKER_URL no configurado, saltando conexion MQTT');
+      return;
+    }
+
     this.logger.log(`Conectando a MQTT: ${brokerUrl}`);
 
     this.client = mqtt.connect(brokerUrl, {
       clientId: `gps-backend-${Date.now()}`,
       clean: true,
       reconnectPeriod: 5000,
+      keepalive: 120,
+      connectTimeout: 3000,
     });
 
     this.client.on('connect', () => {
