@@ -11,6 +11,9 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
+// 1. ACTUALIZAMOS LA INTERFAZ
+// Añadimos ts, sig y op como opcionales (?) para no romper 
+// la compatibilidad con registros que no los tengan.
 export interface LocationPayload {
   deviceId: string;
   lat: number;
@@ -18,6 +21,9 @@ export interface LocationPayload {
   speed: number;
   is_buffered: boolean;
   timestamp: string;
+  ts?: string;    // Satellite Timestamp
+  sig?: number;   // Signal Strength (RSSI)
+  op?: string;    // Operator (Tigo/Claro)
 }
 
 @WebSocketGateway({
@@ -44,10 +50,6 @@ export class StreamingGateway
     this.logger.log(`Cliente desconectado: ${client.id}`);
   }
 
-  /**
-   * El frontend puede suscribirse a un dispositivo específico.
-   * Ejemplo desde Vue: socket.emit('join:device', 'ANDA_ANTIGUA_01')
-   */
   @SubscribeMessage('join:device')
   handleJoin(
     @ConnectedSocket() client: Socket,
@@ -69,7 +71,7 @@ export class StreamingGateway
 
   /**
    * Emite a TODOS los clientes conectados.
-   * Lo llama GpsService cada vez que llega una coordenada.
+   * Ahora incluirá los datos de red y tiempo satelital si están disponibles.
    */
   broadcastLocation(payload: LocationPayload): void {
     this.server.emit('location:update', payload);

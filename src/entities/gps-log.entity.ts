@@ -48,6 +48,26 @@ export class GpsLog {
     default: false
   })
   is_buffered: boolean;
+  
+  @Column({
+    type: 'varchar',
+    length: 30,
+    nullable: true
+  })
+  satellite_ts: string;
+
+  @Column({
+    type: 'int',
+    nullable: true
+  })
+  signal_strength: number;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true
+  })
+  operator: string; 
 
   @Column({
     type: 'timestamptz'
