@@ -3,20 +3,20 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as mqtt from 'mqtt';
-import { GpsLog } from '../../entities/gps-log.entity';import { DevicesService } from '../devices/devices.service';
+import { GpsLog } from '../../entities/gps-log.entity';
+import { DevicesService } from '../devices/devices.service';
 import { StreamingGateway } from '../streaming/streaming.gateway';
 
-// Payload que envía la ESP32
-// Campos principales: id, lat, lon, vel, buf
-// Campos opcionales nuevos: sig (señal RSSI), op (operador)
+// Interfaz actualizada para coincidir con el JSON corto de la ESP32
 interface GpsPayload {
   id: string;
+  k: string;    // api_key
   lat: number;
   lon: number;
-  vel: number;
-  buf: boolean;
-  sig?: number;   // Signal strength RSSI (0-31)
-  op?: string;    // Operador (Claro, Tigo, etc.)
+  v: number;    // velocidad
+  b: boolean;   // buffer
+  s?: number;   // senal
+  h?: string;   // hora (HHMMSS)
 }
 
 @Injectable()
@@ -39,7 +39,7 @@ export class GpsService implements OnModuleInit, OnModuleDestroy {
   onModuleDestroy() {
     if (this.client) {
       this.client.end();
-      this.logger.log('Conexión MQTT cerrada');
+      this.logger.log('Conexion MQTT cerrada');
     }
   }
 
@@ -48,7 +48,7 @@ export class GpsService implements OnModuleInit, OnModuleDestroy {
     const topic = this.configService.get<string>('MQTT_TOPIC') || 'muniantigua/gps';
 
     if (!brokerUrl) {
-      this.logger.warn('MQTT_BROKER_URL no configurado, saltando conexión MQTT');
+      this.logger.warn('MQTT_BROKER_URL no configurado, saltando conexion MQTT');
       return;
     }
 
@@ -91,11 +91,10 @@ export class GpsService implements OnModuleInit, OnModuleDestroy {
     try {
       payload = JSON.parse(raw);
     } catch {
-      this.logger.warn(`Mensaje inválido en ${topic}: ${raw}`);
+      this.logger.warn(`Mensaje invalido en ${topic}: ${raw}`);
       return;
     }
 
-    // Validar campos obligatorios — usa "id", "lat", "lon", "vel", "buf"
     if (!payload.id || payload.lat === undefined || payload.lon === undefined) {
       this.logger.warn(`Payload incompleto: ${raw}`);
       return;
@@ -106,50 +105,67 @@ export class GpsService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    let device;
     try {
-      await this.devicesService.findOne(payload.id);
+      device = await this.devicesService.findOne(payload.id);
     } catch {
       this.logger.warn(`Dispositivo desconocido: ${payload.id}, descartando`);
       return;
     }
 
-    const now = new Date(
-      new Date().toLocaleString('en-US', { timeZone: 'America/Guatemala' })
-    );
+    // Validacion de seguridad API KEY
+    if (device.api_key !== payload.k) {
+      this.logger.warn(`Intento de acceso denegado (API KEY incorrecta) para ${payload.id}`);
+      return;
+    }
+
+    // Manejo exacto de la hora para evitar distorsion de la ruta
+    let logTimestamp = new Date();
+    
+    if (payload.h && payload.h.length >= 6) {
+      const hours = parseInt(payload.h.substring(0, 2), 10);
+      const minutes = parseInt(payload.h.substring(2, 4), 10);
+      const seconds = parseInt(payload.h.substring(4, 6), 10);
+
+      // El satelite siempre envia la hora en formato UTC (GMT 0)
+      const exactTime = new Date();
+      exactTime.setUTCHours(hours, minutes, seconds, 0);
+      logTimestamp = exactTime;
+    }
 
     const log = new GpsLog();
     log.deviceId = payload.id;
     log.latitude = payload.lat;
     log.longitude = payload.lon;
-    log.speed = payload.vel ?? 0;
-    log.is_buffered = payload.buf ?? false;
-    log.timestamp = now;
-    log.signal_strength = payload.sig ?? null;
-    log.operator = payload.op ?? null;
+    log.speed = payload.v ?? 0;
+    log.is_buffered = payload.b ?? false;
+    log.timestamp = logTimestamp;
+    log.signal_strength = payload.s ?? null;
+    log.operator = 'Claro'; // Definido de forma estatica para ahorrar bytes en la ESP32
 
     await this.gpsLogRepo.save(log);
     await this.devicesService.updateLastOnline(payload.id);
 
-    const source = payload.buf ? '[buffer]' : '[realtime]';
-    const netInfo = payload.op ? ` | ${payload.op} ${payload.sig}/31` : '';
+    const source = payload.b ? '[buffer]' : '[realtime]';
+    const netInfo = payload.s ? ` | Claro ${payload.s}/31` : '';
     this.logger.log(`${source} ${payload.id}: ${payload.lat}, ${payload.lon}${netInfo}`);
 
     this.streamingGateway.broadcastLocation({
       deviceId: payload.id,
       lat: payload.lat,
       lon: payload.lon,
-      speed: payload.vel ?? 0,
-      is_buffered: payload.buf ?? false,
-      timestamp: now.toISOString(),
-      sig: payload.sig,
-      op: payload.op,
+      speed: payload.v ?? 0,
+      is_buffered: payload.b ?? false,
+      timestamp: logTimestamp.toISOString(),
+      sig: payload.s,
+      op: 'Claro',
     });
   }
 
   async getHistory(deviceId: string, limit: number): Promise<GpsLog[]> {
     return this.gpsLogRepo.find({
       where: { deviceId },
-      order: { timestamp: 'ASC' },   // ASC para que el frontend ya reciba la ruta ordenada
+      order: { timestamp: 'ASC' },
       take: limit,
     });
   }
