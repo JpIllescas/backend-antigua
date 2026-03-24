@@ -11,9 +11,6 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
-// 1. ACTUALIZAMOS LA INTERFAZ
-// Añadimos ts, sig y op como opcionales (?) para no romper 
-// la compatibilidad con registros que no los tengan.
 export interface LocationPayload {
   deviceId: string;
   lat: number;
@@ -21,9 +18,8 @@ export interface LocationPayload {
   speed: number;
   is_buffered: boolean;
   timestamp: string;
-  ts?: string;    // Satellite Timestamp
-  sig?: number;   // Signal Strength (RSSI)
-  op?: string;    // Operator (Tigo/Claro)
+  sig?: number;   // Señal RSSI (0-31), opcional
+  op?: string;    // Operador (Claro/Tigo), opcional
 }
 
 @WebSocketGateway({
@@ -39,7 +35,7 @@ export class StreamingGateway
   private readonly logger = new Logger(StreamingGateway.name);
 
   afterInit() {
-    this.logger.log('🔌 WebSocket Gateway iniciado en /tracking');
+    this.logger.log('WebSocket Gateway iniciado en /tracking');
   }
 
   handleConnection(client: Socket) {
@@ -69,17 +65,12 @@ export class StreamingGateway
     return { event: 'left', deviceId };
   }
 
-  /**
-   * Emite a TODOS los clientes conectados.
-   * Ahora incluirá los datos de red y tiempo satelital si están disponibles.
-   */
+  // Emite a todos los clientes conectados
   broadcastLocation(payload: LocationPayload): void {
     this.server.emit('location:update', payload);
   }
 
-  /**
-   * Emite solo a los clientes suscritos a ese dispositivo.
-   */
+  // Emite solo a los suscritos a ese dispositivo
   broadcastToDevice(deviceId: string, payload: LocationPayload): void {
     this.server.to(`device:${deviceId}`).emit('location:update', payload);
   }
