@@ -28,13 +28,11 @@ export class GpsLog {
   @Column({ type: 'boolean', default: false })
   is_buffered: boolean;
 
-  // Calidad de señal RSSI del módulo SIM (0-31)
   @Column({ type: 'int', nullable: true })
-  signal_strength: number;
+  signal_strength: number | null;
 
-  // Operador de red detectado (Tigo, Claro, etc.)
   @Column({ type: 'varchar', length: 20, nullable: true })
-  operator: string;
+  operator: string | null;
 
   @Column({ type: 'timestamptz' })
   timestamp: Date;

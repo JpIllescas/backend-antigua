@@ -3,8 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as mqtt from 'mqtt';
-import { GpsLog } from '../../entities/gps-log.entity';
-import { DevicesService } from '../devices/devices.service';
+import { GpsLog } from '../../entities/gps-log.entity';import { DevicesService } from '../devices/devices.service';
 import { StreamingGateway } from '../streaming/streaming.gateway';
 
 // Payload que envía la ESP32
@@ -118,16 +117,15 @@ export class GpsService implements OnModuleInit, OnModuleDestroy {
       new Date().toLocaleString('en-US', { timeZone: 'America/Guatemala' })
     );
 
-    const log = this.gpsLogRepo.create({
-      deviceId: payload.id,
-      latitude: payload.lat,
-      longitude: payload.lon,
-      speed: payload.vel ?? 0,
-      is_buffered: payload.buf ?? false,
-      timestamp: now,
-      signal_strength: payload.sig ?? null,
-      operator: payload.op ?? null,
-    });
+    const log = new GpsLog();
+    log.deviceId = payload.id;
+    log.latitude = payload.lat;
+    log.longitude = payload.lon;
+    log.speed = payload.vel ?? 0;
+    log.is_buffered = payload.buf ?? false;
+    log.timestamp = now;
+    log.signal_strength = payload.sig ?? null;
+    log.operator = payload.op ?? null;
 
     await this.gpsLogRepo.save(log);
     await this.devicesService.updateLastOnline(payload.id);
