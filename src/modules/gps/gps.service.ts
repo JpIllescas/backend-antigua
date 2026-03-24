@@ -129,7 +129,8 @@ export class GpsService implements OnModuleInit, OnModuleDestroy {
 
       // El satelite siempre envia la hora en formato UTC (GMT 0)
       const exactTime = new Date();
-      exactTime.setUTCHours(hours, minutes, seconds, 0);
+      exactTime.setUTCHours(hours, minutes, seconds, 0); // El satelite siempre envia la hora en formato UTC (GMT 0)
+      exactTime.setHours(exactTime.getHours() - 6); // Ajustamos a GMT -6 (hora local de Guatemala)
       logTimestamp = exactTime;
     }
 
