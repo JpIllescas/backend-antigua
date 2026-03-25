@@ -142,7 +142,6 @@ export class GpsService implements OnModuleInit, OnModuleDestroy {
     log.is_buffered = payload.b ?? false;
     log.timestamp = logTimestamp;
     log.signal_strength = payload.s ?? null;
-    log.operator = 'Claro'; // Definido de forma estatica para ahorrar bytes en la ESP32
 
     await this.gpsLogRepo.save(log);
     await this.devicesService.updateLastOnline(payload.id);

@@ -31,9 +31,6 @@ export class GpsLog {
   @Column({ type: 'int', nullable: true })
   signal_strength!: number | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
-  operator?: string | null;
-
   @Column({ type: 'timestamptz' })
   timestamp!: Date;
 
